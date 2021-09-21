@@ -62,6 +62,7 @@
 		<script>
 			const NUMBER_OF_DICES = 16;
 			const MAX_ALLOW_VOLUME = NUMBER_OF_DICES * 6;
+			let isPlayed = false;
 
 			const utils = {
 				random: function (max = 6) {
@@ -75,6 +76,8 @@
 				volumeSymbol: document.getElementById("volume-symbol"),
 				rollBtn: document.getElementById("roll-btn"),
 			};
+
+			const audio = new Audio("/audio/audio.mp3");
 
 			const volumeHandler = {
 				volumeUp: "fa-volume-up",
@@ -91,6 +94,8 @@
 				},
 				updateVolume: function (val) {
 					DOMConst.volumeValue.innerText = val;
+					audio.volume = Number(val) / 100;
+
 					if (Number(val) >= 50) this.showVolumeUp();
 					else this.showVolumeDown();
 				},
@@ -136,6 +141,12 @@
 					const valueArr = [];
 					let volumeLeft = MAX_ALLOW_VOLUME;
 					let needToRollDices = NUMBER_OF_DICES;
+
+					if (!isPlayed) {
+						audio.loop = true;
+						audio.volume = 0.16;
+						audio.play();
+					}
 
 					// get info from the hold dices
 					Array.from(document.querySelectorAll(".dice.hold")).forEach(
