@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<script
+			src="https://kit.fontawesome.com/a66a112bc4.js"
+			crossorigin="anonymous"
+		></script>
+		<title>Volume Rolling</title>
+		<style>
+			#dices-container {
+				display: grid;
+				grid-template-columns: repeat(8, 1fr);
+			}
+
+			.dice img {
+				border: 2px solid black;
+				width: 60px;
+				height: 60px;
+			}
+
+			.controller {
+				display: grid;
+				grid-template-columns: 2fr 1fr 1fr;
+				padding: 1rem 3rem;
+				gap: 0.5rem;
+			}
+
+			.controller div {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.controller #roll-btn {
+				height: 100px;
+				background-color: #ccc;
+				border: 2px solid #444;
+			}
+
+			.controller #volume {
+				font-size: 2rem;
+			}
+
+			.controller #volume-symbol {
+				font-size: 5rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="dices-container" class="dices"></div>
+		<div class="controller">
+			<div id="roll-btn">Roll</div>
+			<div id="volume">Volume: <span id="volume-value">6</span></div>
+			<div>
+				<i id="volume-symbol" class="fas fa-volume-up"></i>
+			</div>
+		</div>
+
+		<script>
+			const NUMBER_OF_DICES = 16;
+			const MAX_ALLOW_VOLUME = NUMBER_OF_DICES * 6;
+
+			const utils = {
+				random: function (max = 6) {
+					return 1 + Math.floor(Math.random() * max);
+				},
+			};
+
+			const DOMConst = {
+				diceContainer: document.getElementById("dices-container"),
+				volumeValue: document.getElementById("volume-value"),
+				volumeSymbol: document.getElementById("volume-symbol"),
+				rollBtn: document.getElementById("roll-btn"),
+			};
+
+			const volumeHandler = {
+				volumeUp: "fa-volume-up",
+				volumeDown: "fa-volume-down",
+				showVolumeUp: function () {
+					const symbolClasses = DOMConst.volumeSymbol.classList;
+					symbolClasses.add(this.volumeUp);
+					symbolClasses.remove(this.volumeDown);
+				},
+				showVolumeDown: function () {
+					const symbolClasses = DOMConst.volumeSymbol.classList;
+					symbolClasses.add(this.volumeDown);
+					symbolClasses.remove(this.volumeUp);
+				},
+				updateVolume: function (val) {
+					DOMConst.volumeValue.innerText = val;
+					if (Number(val) >= 50) this.showVolumeUp();
+					else this.showVolumeDown();
+				},
+			};
+
+			const dicesHandler = {
+				createDiceHtml: function (index) {
+					return `<div class="dice" data-value="1" data-index="${index}" id="dice-${index}">
+                  <img src="img/1.png" />
+                  <div class="dice-controll"><input type="checkbox" class="hold-btn" data-id="${index}"> Hold</div>
+                </div>`;
+				},
+				init: function () {
+					DOMConst.diceContainer.innerHTML = "";
+					for (let i = 0; i < NUMBER_OF_DICES; i++) {
+						DOMConst.diceContainer.innerHTML += this.createDiceHtml(i);
+					}
+					volumeHandler.updateVolume(NUMBER_OF_DICES);
+					DOMConst.rollBtn.addEventListener("click", this.roll);
+					Array.from(document.getElementsByClassName("hold-btn")).forEach((e) =>
+						e.addEventListener("click", this.hold)
+					);
+				},
+
+				hold: function ({ target }) {
+					const holdTargetId = target.getAttribute("data-id");
+					document
+						.getElementById(`dice-${holdTargetId}`)
+						.classList.toggle("hold");
+				},
+
+				setDiceValue: function (diceIndex, value) {
+					document.querySelector(
+						`#dice-${diceIndex} img`
+					).src = `img/${value}.png`;
+
+					document
+						.getElementById(`dice-${diceIndex}`)
+						.setAttribute("data-value", value);
+				},
+
+				roll: function () {
+					const valueArr = [];
+					let volumeLeft = MAX_ALLOW_VOLUME;
+					let needToRollDices = NUMBER_OF_DICES;
+
+					// get info from the hold dices
+					Array.from(document.querySelectorAll(".dice.hold")).forEach(
+						(dice) => {
+							const diceIndex = Number(dice.getAttribute("data-index"));
+							const diceValue = Number(dice.getAttribute("data-value"));
+							valueArr[diceIndex] = diceValue;
+							volumeLeft -= diceValue;
+							needToRollDices--;
+						}
+					);
+
+					// random the other dices
+					for (let index = 0; index < NUMBER_OF_DICES; index++) {
+						// skip the hold dices
+						if (valueArr[index] !== undefined) continue;
+
+						needToRollDices--;
+						// Ex: 3 dices, max 7, dice 1 with value 3
+						// => dice 2 max = 7 (max) - 3 (dice_1) - 1 (min_dice_3) = 3
+						const maxAllowVolume = Math.min(volumeLeft - needToRollDices, 6);
+
+						const currentDiceValue = utils.random(maxAllowVolume);
+
+						volumeLeft -= currentDiceValue;
+						valueArr[index] = currentDiceValue;
+					}
+
+					// set values into the dices
+					for (let i = 0; i < valueArr.length; i++) {
+						dicesHandler.setDiceValue(i, valueArr[i]);
+					}
+					volumeHandler.updateVolume(MAX_ALLOW_VOLUME - volumeLeft);
+				},
+			};
+
+			dicesHandler.init();
+		</script>
+	</body>
+</html>
